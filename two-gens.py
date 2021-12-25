@@ -11,24 +11,27 @@ strFormat = '>IBH'
 tcpAddr = (host, tcpPort)
 MAX_USER_SIZE = 2
 thread = [None] * MAX_USER_SIZE
-results = [None] * MAX_USER_SIZE
+names = [None] * MAX_USER_SIZE
+bufSize = 1024
 
-def start_game(connection, equation, solution, teamName):
+def start_game(connection, equation, solution, names, index):
     startTime = time.time()
     connection.send(equation.encode())
-    ans = connection.recv(1024).decode()
+    ans = connection.recv(bufSize).decode()
     if ans == solution:
-        return [time.time - startTime, True, teamName]
+        return names[index]
+    else:
+        return names[1 - index]
 
 
-def clientThread(connection, cv, index, equation, solution, results):
-    
+def clientThread(connection, index, equation, solution, names):
     cv.acquire()
-    teamName = connection.recv(1024).decode()
+    connection.send(b"Welcome to Quick Maths.")
+    names[index] = connection.recv(bufSize).decode()
     cv.release()
-    print("Team {0}: {1}".format(index + 1, teamName))
+    print("Team {0}: {1}".format(index + 1, names[index]))
+    names[index] = start_game(connection, equation, solution, names, index)
     # Close connection
-    results[index] = start_game(connection, equation, solution, teamName)
     connection.close()
     print("Client connection closed.")
 
@@ -44,28 +47,26 @@ def recieve_Thread(cv):
 
     equation = "2+2"
     solution = 4
-
     cv.acquire()
     while True and clientCount < MAX_USER_SIZE:
         client,address = tcpRecvSocket.accept()
         # Print client connected
         print("connected to {0}, {1}".format(address[0], str(address[1])))
         # Start a new thread for client
-        thread[clientCount] = threading.Thread(target = clientThread, args = (client, cv, clientCount, equation, solution, results))
+        thread[clientCount] = threading.Thread(target = clientThread, args = (client, clientCount, equation, solution, names))
         thread[clientCount].start()
         # Update the number of clients
         clientCount += 1
         print("Thread count =", clientCount)
     # And now we let the games begin
     time.sleep(10)
-    cv.notifyAll()
-    cv.release()
     print("Starting game...")
+    cv.release()
     for i in range(0, MAX_USER_SIZE):
         thread[i].join()
     min = 10
     winner = ""
-    for [t, ans, name] in results:
+    for [t, ans, name] in names:
         if t < min and ans == solution:
             min = t
             winner = name
@@ -83,7 +84,6 @@ def sendUDP():
     while True:
         packedBr = struct.pack(strFormat, 0xabcddcba, 0x2, tcpPort)
         udpSendSocket.sendall(packedBr)
-        print("Sending...")
         time.sleep(1)
 
 cv = threading.Condition()
@@ -122,7 +122,7 @@ recieve_Thread(cv)
 #       while True:
 #           # Allocate recieved data
 #           connection.send(str(udpSendSocket.getsockname()[0]).encode('ascii'))
-#           buffer = connection.recv(1024)
+#           buffer = connection.recv(bufSize)
 #           if not buffer:
 #               break
 #       # Close connection

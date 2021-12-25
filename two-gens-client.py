@@ -44,6 +44,8 @@ except socket.error as e:
     print(e)
 
 tcpSendSocket.send(name.encode())
+#welcomeMessage = tcpSendSocket.recv(1024).decode()
+#print(welcomeMessage)
 #   equation = tcpSendSocket.recv(1024).decode()
 #   ans = input("How much is {0}?")
 #   tcpSendSocket.send(ans.encode())
