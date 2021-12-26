@@ -5,9 +5,7 @@ import time
 import select
 
 # The IP address of the client
-hostname = socket.gethostname()
-host = socket.gethostbyname(hostname)
-host = '192.168.56.1'
+host = ''
 
 # Define the broadcast port on which you want to connect
 brPort = 13117
@@ -30,8 +28,9 @@ print("Client Started, listening for offer requests...")
 # message received from server
 invalidPacket = True
 while invalidPacket:
-    data = udpRecvSocket.recv(1024)
-    unpackedBr = struct.unpack(strFormat, data)
+    data = udpRecvSocket.recvfrom(1024)
+    host = data[1][0]
+    unpackedBr = struct.unpack(strFormat, data[0])
     if unpackedBr[0] == 0xabcddcba:
         if unpackedBr[1] == 0x2:
             invalidPacket = False
@@ -45,14 +44,22 @@ try:
 except socket.error as e:
     print(e)
 tcpSendSocket.send(name.encode())
-ready_sockets, _, _ = select.select([tcpSendSocket], [], [], 1)
-if ready_sockets:
-    welcomeMessage = tcpSendSocket.recv(1024).decode()
-    print(welcomeMessage)
-if ready_sockets:
-    equation = tcpSendSocket.recv(1024).decode()
-    ans = input("How much is {0}?".format(equation))
-    tcpSendSocket.send(ans.encode())
+ready_sockets, _, _ = select.select([tcpSendSocket], [], [])
+welcomeMessage = 'a'
+while welcomeMessage == 'a':
+    if ready_sockets:
+        welcomeMessage = tcpSendSocket.recv(1024).decode()
+        print(welcomeMessage)
+    else:
+        time.sleep(1)
+equation = None
+while equation == None:
+    if tcpSendSocket in ready_sockets:
+        equation = tcpSendSocket.recv(1024).decode()
+        ans = input("How much is {0}?".format(equation))
+        tcpSendSocket.send(ans.encode())
+    else:
+        time.sleep(1)
 # Start the game
 # close the connection
 #tcpSendSocket.close()

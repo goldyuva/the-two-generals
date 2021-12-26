@@ -10,13 +10,23 @@ host = socket.gethostbyname(hostname)
 print("Server started, listening on {0}".format(host))
 
 brPort = 13117
-tcpPort = 107
+tcpPort = 0
 strFormat = '>IBH'
 tcpAddr = (host, tcpPort)
 MAX_USER_SIZE = 2
 thread = [None] * MAX_USER_SIZE
 names = [None] * MAX_USER_SIZE
 bufSize = 1024
+
+    
+tcpRecvSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    tcpRecvSocket.bind(tcpAddr)
+    tcpPort = tcpRecvSocket.getsockname()[1]
+    print(tcpPort)
+except socket.error as e:
+    print(e)
+tcpRecvSocket.listen(5)
 
 def start_game(connection, equation, solution, names, index):
     connection.send(equation.encode())
@@ -29,7 +39,7 @@ def start_game(connection, equation, solution, names, index):
 
 def clientThread(connection, index, equation, solution, names):
     cv.acquire()
-    connection.send(b"Welcome to Quick Maths.")
+    connection.sendall(b"Welcome to Quick Maths.")
     names[index] = connection.recv(bufSize).decode()
     cv.release()
     print("Team {0}: {1}".format(index + 1, names[index]))
@@ -40,13 +50,6 @@ def clientThread(connection, index, equation, solution, names):
 
 def recieve_Thread(cv):
     clientCount = 0
-    
-    tcpRecvSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        tcpRecvSocket.bind(tcpAddr)
-    except socket.error as e:
-        print(e)
-    tcpRecvSocket.listen(5)
 
     equation = "2+2"
     solution = 4
@@ -57,13 +60,14 @@ def recieve_Thread(cv):
         print("connected to {0}, {1}".format(address[0], str(address[1])))
         # Start a new thread for client
         thread[clientCount] = threading.Thread(target = clientThread, args = (client, clientCount, equation, solution, names))
-        thread[clientCount].start()
         # Update the number of clients
         clientCount += 1
         print("Thread count =", clientCount)
     # And now we let the games begin
     time.sleep(10)
     print("Starting game...")
+    for i in range (0, MAX_USER_SIZE):
+        thread[i].start()
     cv.release()
     for i in range(0, MAX_USER_SIZE):
         thread[i].join()
@@ -77,17 +81,18 @@ def recieve_Thread(cv):
 
     tcpRecvSocket.close()
 
-def sendUDP():
+def sendUDP(port):
     udpSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udpSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     while True:
-        packedBr = struct.pack(strFormat, 0xabcddcba, 0x2, tcpPort)
-        udpSendSocket.sendto(packedBr, ('255.255.255.255', brPort))
+        if port != 0:
+            packedBr = struct.pack(strFormat, 0xabcddcba, 0x2, tcpPort)
+            udpSendSocket.sendto(packedBr, ('255.255.255.255', brPort))
         time.sleep(1)
 
 cv = threading.Condition()
-threadUDP = threading.Thread(target = sendUDP, args = ())
+threadUDP = threading.Thread(target = sendUDP, args = (tcpPort,))
 threadUDP.start()
 recieve_Thread(cv)
 
