@@ -1,11 +1,13 @@
 import socket
 from struct import *
 import struct
+import time
+import select
 
 # The IP address of the client
-#hostname = socket.gethostname()
-#host = socket.gethostbyname(hostname)
-host = '127.0.0.1'
+hostname = socket.gethostname()
+host = socket.gethostbyname(hostname)
+host = '192.168.56.1'
 
 # Define the broadcast port on which you want to connect
 brPort = 13117
@@ -42,13 +44,15 @@ try:
     tcpSendSocket.connect((host, port))
 except socket.error as e:
     print(e)
-
 tcpSendSocket.send(name.encode())
-#welcomeMessage = tcpSendSocket.recv(1024).decode()
-#print(welcomeMessage)
-#   equation = tcpSendSocket.recv(1024).decode()
-#   ans = input("How much is {0}?")
-#   tcpSendSocket.send(ans.encode())
+ready_sockets, _, _ = select.select([tcpSendSocket], [], [], 1)
+if ready_sockets:
+    welcomeMessage = tcpSendSocket.recv(1024).decode()
+    print(welcomeMessage)
+if ready_sockets:
+    equation = tcpSendSocket.recv(1024).decode()
+    ans = input("How much is {0}?".format(equation))
+    tcpSendSocket.send(ans.encode())
 # Start the game
 # close the connection
 #tcpSendSocket.close()

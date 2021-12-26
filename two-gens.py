@@ -4,7 +4,11 @@ import threading
 import time
 from _thread import *
 
-host = '127.0.0.1'
+hostname = socket.gethostname()
+host = socket.gethostbyname(hostname)
+
+print("Server started, listening on {0}".format(host))
+
 brPort = 13117
 tcpPort = 107
 strFormat = '>IBH'
@@ -15,7 +19,6 @@ names = [None] * MAX_USER_SIZE
 bufSize = 1024
 
 def start_game(connection, equation, solution, names, index):
-    startTime = time.time()
     connection.send(equation.encode())
     ans = connection.recv(bufSize).decode()
     if ans == solution:
@@ -76,14 +79,11 @@ def recieve_Thread(cv):
 
 def sendUDP():
     udpSendSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        udpSendSocket.connect((host, brPort))
-    except socket.error as e:
-        print(e)
+    udpSendSocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
     while True:
         packedBr = struct.pack(strFormat, 0xabcddcba, 0x2, tcpPort)
-        udpSendSocket.sendall(packedBr)
+        udpSendSocket.sendto(packedBr, ('255.255.255.255', brPort))
         time.sleep(1)
 
 cv = threading.Condition()
