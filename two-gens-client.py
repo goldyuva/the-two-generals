@@ -30,12 +30,15 @@ print("Client Started, listening for offer requests...")
 # message received from server
 invalidPacket = True
 while invalidPacket:
-    data = udpRecvSocket.recvfrom(1024)
-    host = data[1][0]
-    unpackedBr = struct.unpack(strFormat, data[0])
-    if unpackedBr[0] == 0xabcddcba:
-        if unpackedBr[1] == 0x2:
-            invalidPacket = False
+    try:
+        data = udpRecvSocket.recvfrom(1024)
+        host = data[1][0]
+        unpackedBr = struct.unpack(strFormat, data[0])
+        if unpackedBr[0] == 0xabcddcba:
+            if unpackedBr[1] == 0x2:
+                invalidPacket = False
+    except:
+        print("failed to receive valid packet.")
 
 port = unpackedBr[2]
 # print the received message
@@ -47,20 +50,18 @@ except socket.error as e:
     print(e)
 tcpSendSocket.send(name.encode())
 ready_sockets, _, _ = select.select([tcpSendSocket], [], [])
-welcomeMessage = 'a'
-while welcomeMessage == 'a':
-    if ready_sockets:
-        welcomeMessage = tcpSendSocket.recv(1024).decode()
-        print(welcomeMessage)
-    else:
-        time.sleep(1)
-equation = None
-while equation == None:
-    if tcpSendSocket in ready_sockets:
-        equation = tcpSendSocket.recv(1024).decode()
-        print("How much is {0}? ".format(equation))
-    else:
-        time.sleep(1)
+
+try:
+    welcomeMessage = tcpSendSocket.recv(1024).decode()
+except:
+    print("Failed to receive a welcome message.")
+    quit()
+print(welcomeMessage)
+if welcomeMessage.endswith('disconnected.'):
+    quit()
+
+equation = tcpSendSocket.recv(1024).decode()
+print("How much is {0}? ".format(equation))
 ready_sockets, _, _ = select.select([tcpSendSocket], [], [], 1)
 summary = None
 while summary == None:
