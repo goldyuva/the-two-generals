@@ -6,6 +6,7 @@ import time
 import select
 import sys
 import getch
+import random
 
 # The IP address of the client
 host = ''
@@ -13,7 +14,8 @@ host = ''
 # Define the broadcast port on which you want to connect
 brPort = 13117
 strFormat = '>IBH'
-name = "Admiral Greneral Aladdin"
+name = "Admiral Greneral Aladdin {0}".format(random.randint(0, 100))
+print(name)
 data = ''
 unpackedBr = ''
 

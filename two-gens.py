@@ -6,6 +6,7 @@ import time
 from _thread import *
 from scapy.all import get_if_addr
 import random
+import math
 
 host = get_if_addr('eth0')
 
@@ -31,9 +32,27 @@ except socket.error as e:
 tcpRecvSocket.listen(5)
 
 def generateAdd():
-    input1 = random.randint(1, 10)
-    input2 = random.randint(0, 10 - input1)
+    input1 = random.randint(1, 9)
+    input2 = random.randint(0, 9 - input1)
     return "{0}+{1}".format(input1, input2), input1+input2
+
+def generateMult():
+    input1 = random.randint(0,9)
+    input2 = random.randint(0, 9/input2)
+    return "{0}*{1}".format(input1, input2), input1*input2
+
+def generateFact():
+    input1 = random.randint(0,3)
+    return "{0}!".format(input1), math.factorial(input1)
+
+def generatePower():
+    input1 = random.randint(1, 3)
+    input2 = random.randint(0, 2)
+    return "{0}^{1}".format(input1, input2), input1**input2
+
+def generateEquation():
+    funGen = [generateAdd, generateMult, generateFact, generatePower]
+    return funGen[idx]
 
 def start_game(connection, equation, solution, names, index):
     if not finish_threads_execution:
@@ -42,7 +61,7 @@ def start_game(connection, equation, solution, names, index):
     while winner[0] == None and finish_threads_execution == False:
         if connection in answer:
             ans = connection.recv(bufSize).decode()
-            if ans == solution:
+            if ans == str(solution):
                 winner[0] = names[index]
             else:
                 winner[0] = names[1 - index]
@@ -74,7 +93,7 @@ def recieve_Thread(cv):
     thread = [None] * MAX_USER_SIZE
     finish_threads_execution = False
     winner[0] = None
-    equation, solution = generateAdd()
+    equation, solution = generatePower()
     cv.acquire()
     print("Server started, listening on {0}".format(host))
     while True and clientCount < MAX_USER_SIZE:
