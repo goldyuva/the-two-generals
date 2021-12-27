@@ -1,8 +1,10 @@
+from enum import Flag
 import socket
 from struct import *
 import struct
 import time
 import select
+import msvcrt
 
 # The IP address of the client
 host = ''
@@ -56,10 +58,22 @@ equation = None
 while equation == None:
     if tcpSendSocket in ready_sockets:
         equation = tcpSendSocket.recv(1024).decode()
-        ans = input("How much is {0}?".format(equation))
-        tcpSendSocket.send(ans.encode())
+        print("How much is {0}? ".format(equation))
     else:
         time.sleep(1)
+ready_sockets, _, _ = select.select([tcpSendSocket], [], [], 1)
+summary = None
+while summary == None:
+    if msvcrt.kbhit():
+        ch = msvcrt.getch()
+        print("RECEIVED CHAR: {0}\n".format(ch.decode()))
+        tcpSendSocket.send(ch)
+        ansFlag = True
+    elif tcpSendSocket in ready_sockets:
+        summary = tcpSendSocket.recv(1024).decode()
+        print(summary)
+        ansFlag = True
+    ready_sockets, _, _ = select.select([tcpSendSocket], [], [], 1)
 # Start the game
 # close the connection
 #tcpSendSocket.close()

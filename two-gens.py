@@ -1,6 +1,7 @@
 import socket
 import struct
 import threading
+import select
 import time
 from _thread import *
 
@@ -17,8 +18,11 @@ MAX_USER_SIZE = 2
 thread = [None] * MAX_USER_SIZE
 names = [None] * MAX_USER_SIZE
 bufSize = 1024
+winner = [None]
+SLEEP_TIME = 3
+client_address = [None] * MAX_USER_SIZE
+finish_threads_execution = False
 
-    
 tcpRecvSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     tcpRecvSocket.bind(tcpAddr)
@@ -28,13 +32,20 @@ except socket.error as e:
     print(e)
 tcpRecvSocket.listen(5)
 
-def start_game(connection, equation, solution, names, index):
+def start_game(connection, equation, solution, names, index, winner):
     connection.send(equation.encode())
-    ans = connection.recv(bufSize).decode()
-    if ans == solution:
-        return names[index]
-    else:
-        return names[1 - index]
+    answer, _, _ = select.select([connection], [], [], 1)
+    while winner[0] == None and not finish_threads_execution:
+        if connection in answer:
+            ans = connection.recv(bufSize).decode()
+            if ans == solution:
+                winner[0] = names[index]
+            else:
+                winner[0] = names[1 - index]
+        else:
+            time.sleep(1)
+        answer, _, _ = select.select([connection], [], [], 1)
+    return winner
 
 
 def clientThread(connection, index, equation, solution, names):
@@ -43,10 +54,7 @@ def clientThread(connection, index, equation, solution, names):
     names[index] = connection.recv(bufSize).decode()
     cv.release()
     print("Team {0}: {1}".format(index + 1, names[index]))
-    names[index] = start_game(connection, equation, solution, names, index)
-    # Close connection
-    connection.close()
-    print("Client connection closed.")
+    start_game(connection, equation, solution, names, index, winner)
 
 def recieve_Thread(cv):
     clientCount = 0
@@ -56,6 +64,7 @@ def recieve_Thread(cv):
     cv.acquire()
     while True and clientCount < MAX_USER_SIZE:
         client,address = tcpRecvSocket.accept()
+        client_address[clientCount] = [client, address]
         # Print client connected
         print("connected to {0}, {1}".format(address[0], str(address[1])))
         # Start a new thread for client
@@ -64,21 +73,23 @@ def recieve_Thread(cv):
         clientCount += 1
         print("Thread count =", clientCount)
     # And now we let the games begin
-    time.sleep(10)
+    time.sleep(SLEEP_TIME)
     print("Starting game...")
     for i in range (0, MAX_USER_SIZE):
         thread[i].start()
     cv.release()
-    for i in range(0, MAX_USER_SIZE):
-        thread[i].join()
-    min = 10
-    winner = ""
-    for [t, ans, name] in names:
-        if t < min and ans == solution:
-            min = t
-            winner = name
-    print("The winner is {0}".format(winner))
-
+    countdown = 10
+    while winner[0] == None and countdown > 0:
+        time.sleep(1)
+        countdown -= 1
+    if winner[0] == None:
+        winner[0] = "it's a draw"
+    finish_threads_execution = True
+    print("Winner: {0}".format(winner[0]))
+    summary = "Thanks to both teams: {0}, {1}.\nAnd the winner is...\n{2}!!".format(names[0], names[1], winner[0])
+    for i in range (0, MAX_USER_SIZE):
+        client_address[i][0].sendall(summary.encode())
+        client_address[i][0].close()
     tcpRecvSocket.close()
 
 def sendUDP(port):
