@@ -4,7 +4,8 @@ from struct import *
 import struct
 import time
 import select
-import msvcrt
+import sys
+import getch
 
 # The IP address of the client
 host = ''
@@ -12,7 +13,7 @@ host = ''
 # Define the broadcast port on which you want to connect
 brPort = 13117
 strFormat = '>IBH'
-name = "General Zod"
+name = "Admiral Greneral Aladdin"
 data = ''
 unpackedBr = ''
 
@@ -38,7 +39,7 @@ while invalidPacket:
             if unpackedBr[1] == 0x2:
                 invalidPacket = False
     except:
-        print("failed to receive valid packet.")
+        pass
 
 port = unpackedBr[2]
 # print the received message
@@ -60,15 +61,20 @@ print(welcomeMessage)
 if welcomeMessage.endswith('disconnected.'):
     quit()
 
+def kbhit():
+    ready_input, _, _ = select.select([sys.stdin], [], [], 0)
+    return sys.stdin in ready_input
+
 equation = tcpSendSocket.recv(1024).decode()
 print("How much is {0}? ".format(equation))
-ready_sockets, _, _ = select.select([tcpSendSocket], [], [], 1)
 summary = None
+
+ready_sockets, _, _ = select.select([tcpSendSocket], [], [], 1)
 while summary == None:
-    if msvcrt.kbhit():
-        ch = msvcrt.getch()
-        print("RECEIVED CHAR: {0}\n".format(ch.decode()))
-        tcpSendSocket.send(ch)
+    if kbhit():
+        ch = getch.getch()
+        print("RECEIVED CHAR: {0}".format(ch))
+        tcpSendSocket.send(ch.encode())
         ansFlag = True
     elif tcpSendSocket in ready_sockets:
         summary = tcpSendSocket.recv(1024).decode()

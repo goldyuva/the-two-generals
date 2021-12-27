@@ -4,9 +4,10 @@ import threading
 import select
 import time
 from _thread import *
+from scapy.all import get_if_addr
+import random
 
-hostname = socket.gethostname()
-host = socket.gethostbyname(hostname)
+host = get_if_addr('eth0')
 
 brPort = 13117
 tcpPort = [0]
@@ -29,6 +30,11 @@ except socket.error as e:
     print(e)
 tcpRecvSocket.listen(5)
 
+def generateAdd():
+    input1 = random.randint(1, 10)
+    input2 = random.randint(0, 10 - input1)
+    return "{0}+{1}".format(input1, input2), input1+input2
+
 def start_game(connection, equation, solution, names, index):
     if not finish_threads_execution:
         connection.send(equation.encode())
@@ -40,8 +46,6 @@ def start_game(connection, equation, solution, names, index):
                 winner[0] = names[index]
             else:
                 winner[0] = names[1 - index]
-        else:
-            time.sleep(1)
         try:
             answer, _, _ = select.select([connection], [], [], 1)
         except:
@@ -70,8 +74,7 @@ def recieve_Thread(cv):
     thread = [None] * MAX_USER_SIZE
     finish_threads_execution = False
     winner[0] = None
-    equation = "2+2"
-    solution = 4
+    equation, solution = generateAdd()
     cv.acquire()
     print("Server started, listening on {0}".format(host))
     while True and clientCount < MAX_USER_SIZE:
@@ -106,9 +109,12 @@ def recieve_Thread(cv):
         print("Winner: {0}".format(winner[0]))
         summary = "Thanks to both teams: {0}, {1}.\nAnd the winner is...\n{2}!!".format(names[0], names[1], winner[0])
         for i in range (0, MAX_USER_SIZE):
-            client_address[i][0].sendall(summary.encode())
-            client_address[i][0].close()
-            thread[i].join()
+            try:
+                client_address[i][0].sendall(summary.encode())
+                client_address[i][0].close()
+                thread[i].join()
+            except:
+                print("Client from team: {0} disconnected.".format(names[i]))
         cv.release()
     tcpPort[0] = tcpRecvSocket.getsockname()[1]
 
