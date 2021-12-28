@@ -20,9 +20,17 @@ print(name)
 data = ''
 unpackedBr = ''
 
+def get_input():
+    msg = None
+    ready_input, _, _ = select.select([sys.stdin], [], [], 10)
+    if ready_input:
+        msg = sys.stdin.read(1)
+    else:
+        pass
+    return msg
 async def ainput() -> str:
     return await asyncio.get_event_loop().run_in_executor(
-            None, lambda: sys.stdin.read(1))
+            None, lambda: get_input())
 
 udpRecvSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 udpRecvSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -72,34 +80,33 @@ if welcomeMessage.endswith('disconnected.'):
 
 equation = tcpSendSocket.recv(1024).decode()
 print("How much is {0}? ".format(equation))
-summary = None
+summary = [None]
 async def keyboard_input():
-    global summary
-    ansFlag = False
-    while not ansFlag and not summary:
-        sleep = False
-        if sleep:
-            await asyncio.sleep(1)
-            print("sleeping works fine")
-        else:
+    try:
+        ansFlag = False
+        while not ansFlag:
             ch = await ainput()
             print("RECEIVED CHAR: {0}".format(ch))
             if ansFlag == False:
                 tcpSendSocket.send(ch.encode())
             ansFlag = True
-            print(ch)
-
+    except asyncio.CancelledError:
+        print("can't read char anymore")
 async def receive_message():
-    global summary
-    while summary == None:
-        summary = await asyncio.get_event_loop().run_in_executor(None, lambda: tcpSendSocket.recv(1024).decode())
-        print(summary)
+    while summary[0] == None:
+        summary[0] = await asyncio.get_event_loop().run_in_executor(None, lambda: tcpSendSocket.recv(1024).decode())
+        print(summary[0])
+        raise KeyboardInterrupt
+tasks = [asyncio.ensure_future(keyboard_input()), asyncio.ensure_future(receive_message())]
+async def main():
+    try:
+        gathering = await asyncio.wait(tasks, return_when=asyncio.FIRST_EXCEPTION)
+    except KeyboardInterrupt:
+        gathering.cancel()
 try:
-    asyncio.get_event_loop().run_until_complete(asyncio.wait(
-        [keyboard_input(), receive_message()]
-    ))
+    asyncio.get_event_loop().run_until_complete(main())
 except KeyboardInterrupt:
-    quit()
+    print("finishing...")
 # Start the game
 # close the connection
 #tcpSendSocket.close()
