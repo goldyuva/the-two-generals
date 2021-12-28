@@ -11,12 +11,24 @@ import asyncio
 
 # The IP address of the client
 host = ''
+colors = ['\033[95m', '\033[94m', '\033[96m', '\033[92m', '\033[93m', '\033[91m', '\033[0m', '\033[1m', '\033[4m']
+index = [0]
+
+def cprint(s):
+    print(colors[index[0]] + colors[7] + s + colors[6])
+    index[0] = (index[0] + 1) % 3
+
+def wprint(s):
+    print(colors[4] + colors[7] + colors[8] + s + colors[6])
+
+def eprint(s):
+    print(colors[5] + colors[8] + colors[7] + s + colors[6])
 
 # Define the broadcast port on which you want to connect
 brPort = 13117
 strFormat = '>IBH'
-name = "Admiral Greneral Aladdin {0}".format(random.randint(0, 100))
-print(name)
+name = "General Iroh {0}".format(random.randint(1, 4))
+cprint(name)
 data = ''
 unpackedBr = ''
 
@@ -37,65 +49,64 @@ udpRecvSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 try:
     udpRecvSocket.bind(('', brPort))
 except socket.error as e:
-    print(e)
+    eprint(e)
 
 # connect to server on local computer
 #udpRecvSocket.connect((host,port))
 
-print("Client Started, listening for offer requests...")
+cprint("Client Started, listening for offer requests...")
 # message received from server
 invalidPacket = True
 while invalidPacket:
     try:
         data = udpRecvSocket.recvfrom(1024)
         host = data[1][0]
-        unpackedBr = struct.unpack(strFormat, data[0])
-        print(unpackedBr[2])
-        if unpackedBr[0] == 0xabcddcba:
-            if unpackedBr[1] == 0x2:
-                invalidPacket = False
+        if host.endswith("77"):
+            unpackedBr = struct.unpack(strFormat, data[0])
+            if unpackedBr[0] == 0xabcddcba:
+                if unpackedBr[1] == 0x2:
+                    invalidPacket = False
     except:
         pass
 
 port = unpackedBr[2]
-print(port)
 # print the received message
-print('Received offer from {0}, Attempting to connect'.format(host))
+cprint('Received offer from {0}, Attempting to connect'.format(host))
 tcpSendSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     tcpSendSocket.connect((host, port))
 except socket.error as e:
-    print(e)
+    eprint(e)
 tcpSendSocket.send(name.encode())
 ready_sockets, _, _ = select.select([tcpSendSocket], [], [])
 
 try:
     welcomeMessage = tcpSendSocket.recv(1024).decode()
 except:
-    print("Failed to receive a welcome message.")
+    eprint("Failed to receive a welcome message.")
     quit()
-print(welcomeMessage)
+cprint(welcomeMessage)
 if welcomeMessage.endswith('disconnected.'):
     quit()
 
 equation = tcpSendSocket.recv(1024).decode()
-print("How much is {0}? ".format(equation))
+cprint("How much is {0}? ".format(equation))
 summary = [None]
 async def keyboard_input():
     try:
         ansFlag = False
         while not ansFlag:
             ch = await ainput()
-            print("RECEIVED CHAR: {0}".format(ch))
+            cprint("RECEIVED CHAR: {0}".format(ch))
             if ansFlag == False:
                 tcpSendSocket.send(ch.encode())
             ansFlag = True
     except asyncio.CancelledError:
-        print("can't read char anymore")
+        eprint("can't read char anymore")
 async def receive_message():
     while summary[0] == None:
         summary[0] = await asyncio.get_event_loop().run_in_executor(None, lambda: tcpSendSocket.recv(1024).decode())
-        print(summary[0])
+        wprint(summary[0])
         raise KeyboardInterrupt
 tasks = [asyncio.ensure_future(keyboard_input()), asyncio.ensure_future(receive_message())]
 async def main():
@@ -106,7 +117,7 @@ async def main():
 try:
     asyncio.get_event_loop().run_until_complete(main())
 except KeyboardInterrupt:
-    print("finishing...")
+    cprint("finishing...")
 # Start the game
 # close the connection
 #tcpSendSocket.close()
