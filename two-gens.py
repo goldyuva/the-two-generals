@@ -10,7 +10,7 @@ import math
 import sys
 
 host = get_if_addr('eth2')
-
+broadcast_ip = '255.255.255.255'
 #broadcast port
 brPort = 13117
 #TCP connection port
@@ -337,7 +337,7 @@ def sendUDP():
             #pack the message
             packedBr = struct.pack(strFormat, 0xabcddcba, 0x2, tcpPort[0])
             #send it
-            udpSendSocket.sendto(packedBr, ('255.255.255.255', brPort))
+            udpSendSocket.sendto(packedBr, (broadcast_ip, brPort))
         time.sleep(1)
 
 #create ;pcl

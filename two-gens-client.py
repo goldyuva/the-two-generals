@@ -16,6 +16,7 @@ colors = ['\033[95m', '\033[94m', '\033[96m', '\033[92m', '\033[93m', '\033[91m'
 rainbow = ['\x1b[1;{0};40m']
 #index for switching the colors
 index = [0]
+broadcast_ip = get_if_addr('eth2')
 
 #print char-char with rainbow colors
 def sprint(s):
@@ -84,7 +85,7 @@ while True:
     #get port from packet
     port = unpackedBr[2]
     #get eth ip address
-    host = get_if_addr('eth2')
+    host = broadcast_ip
     # print the received message
     cprint('Received offer from {0}, Attempting to connect'.format(host))
     #initialize TCP socket
