@@ -8,12 +8,20 @@ import sys
 import getch
 import random
 import asyncio
-import curses
+from scapy.all import get_if_addr
 
 # The IP address of the client
 host = ''
 colors = ['\033[95m', '\033[94m', '\033[96m', '\033[92m', '\033[93m', '\033[91m', '\033[0m', '\033[1m', '\033[4m']
+rainbow = ['\x1b[1;{0};40m']
 index = [0]
+
+def sprint(s):
+    prstr = ''
+    for i in range(0, len(s)):
+        format = rainbow[0].format(31 + i%6)
+        prstr += format + s[i]
+    print(prstr + '\x1b[0m')
 
 def cprint(s):
     print(colors[index[0]] + colors[7] + s + colors[6])
@@ -32,30 +40,37 @@ name = "General Iroh {0}".format(random.randint(1, 4))
 cprint(name)
 data = ''
 unpackedBr = ''
+to_finish = False
+
+def kbhit():
+    dr, _, _ = select.select([sys.stdin], [], [], 0)
+    return dr != []
 
 def get_input():
     msg = None
-    curses.tumeout(0)
-    while msg < 0:
-        msg = curses.getch()
+    while msg == None and not to_finish:
+        if(kbhit()):
+            msg = getch.getch()
+            print("got key:", msg)
+            tcpSendSocket.send(msg.encode())
         time.sleep(1)
-    return chr(msg)
+    return str(chr(msg))
 
-async def ainput() -> char:
+async def ainput() -> str:
     return await asyncio.get_event_loop().run_in_executor(
             None, lambda: get_input())
 
 udpRecvSocket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 udpRecvSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 try:
-    udpRecvSocket.bind(('', brPort))
+    udpRecvSocket.bind(('255.255.255.255', brPort))
 except socket.error as e:
     eprint(e)
 
 # connect to server on local computer
 #udpRecvSocket.connect((host,port))
 
-cprint("Client Started, listening for offer requests...")
+sprint("Client Started, listening for offer requests...")
 # message received from server
 invalidPacket = True
 while invalidPacket:
@@ -74,6 +89,7 @@ port = unpackedBr[2]
 # print the received message
 cprint('Received offer from {0}, Attempting to connect'.format(host))
 tcpSendSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+host = get_if_addr('eth1')
 try:
     tcpSendSocket.connect((host, port))
 except socket.error as e:
@@ -119,6 +135,7 @@ try:
     asyncio.get_event_loop().run_until_complete(main())
 except KeyboardInterrupt:
     cprint("finishing...")
+    to_finish = True
 # Start the game
 # close the connection
 #tcpSendSocket.close()

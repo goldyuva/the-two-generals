@@ -9,7 +9,7 @@ import random
 import math
 import sys
 
-host = get_if_addr('eth0')
+host = get_if_addr('eth1')
 
 brPort = 13117
 tcpPort = [0]
@@ -62,7 +62,7 @@ def generateAdd():
     return "{0}+{1}".format(input1, input2), input1+input2
 
 def generateMult():
-    input1 = random.randint(1,9)
+    input1 = random.randint(1,3)
     input2 = random.randint(0, int(9/input1))
     return "{0}*{1}".format(input1, input2), input1*input2
 
