@@ -83,12 +83,12 @@ while True:
             pass
     #get port from packet
     port = unpackedBr[2]
+    #get eth ip address
+    host = get_if_addr('eth1')
     # print the received message
     cprint('Received offer from {0}, Attempting to connect'.format(host))
     #initialize TCP socket
     tcpSendSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #get eth ip address
-    host = get_if_addr('eth1')
     try:
         #connect to the ip and port the server sent
         tcpSendSocket.connect((host, port))
