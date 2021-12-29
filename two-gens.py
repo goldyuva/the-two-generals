@@ -26,6 +26,7 @@ finish_threads_execution = False
 
 colors = ['\033[95m', '\033[94m', '\033[96m', '\033[92m', '\033[93m', '\033[91m', '\033[0m', '\033[1m', '\033[4m']
 backgrounds = ['\u001b[41;1m']
+rainbow = ['\x1b[1;{0};40m']
 index = [0]
 players = {}
 equations = {}
@@ -37,6 +38,13 @@ try:
 except socket.error as e:
     cprint(e)
 tcpRecvSocket.listen(5)
+
+def sprint(s):
+    prstr = ''
+    for i in range(0, len(s)):
+        format = rainbow[0].format(31 + i%6)
+        prstr += format + s[i]
+    print(prstr + '\x1b[0m')
 
 def cprint(s):
     print(colors[index[0]] + colors[7] + s + colors[6])
@@ -54,8 +62,8 @@ def generateAdd():
     return "{0}+{1}".format(input1, input2), input1+input2
 
 def generateMult():
-    input1 = random.randint(0,9)
-    input2 = random.randint(0, 9/input2)
+    input1 = random.randint(1,9)
+    input2 = random.randint(0, int(9/input1))
     return "{0}*{1}".format(input1, input2), input1*input2
 
 def generateFact():
@@ -133,7 +141,7 @@ def recieve_Thread(cv):
     winner[0] = None
     equation, solution = generateEquation()
     cv.acquire()
-    cprint("Server started, listening on {0}".format(host))
+    sprint("Server started, listening on {0}".format(host))
     while True and clientCount < MAX_USER_SIZE:
         client,address = tcpRecvSocket.accept()
         client_address[clientCount] = [client, address]

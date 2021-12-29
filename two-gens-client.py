@@ -8,6 +8,7 @@ import sys
 import getch
 import random
 import asyncio
+import curses
 
 # The IP address of the client
 host = ''
@@ -34,13 +35,13 @@ unpackedBr = ''
 
 def get_input():
     msg = None
-    ready_input, _, _ = select.select([sys.stdin], [], [], 10)
-    if ready_input:
-        msg = sys.stdin.read(1)
-    else:
-        pass
-    return msg
-async def ainput() -> str:
+    curses.tumeout(0)
+    while msg < 0:
+        msg = curses.getch()
+        time.sleep(1)
+    return chr(msg)
+
+async def ainput() -> char:
     return await asyncio.get_event_loop().run_in_executor(
             None, lambda: get_input())
 
