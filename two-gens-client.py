@@ -84,7 +84,7 @@ while True:
     #get port from packet
     port = unpackedBr[2]
     #get eth ip address
-    host = get_if_addr('eth1')
+    host = get_if_addr('eth2')
     # print the received message
     cprint('Received offer from {0}, Attempting to connect'.format(host))
     #initialize TCP socket

@@ -9,7 +9,7 @@ import random
 import math
 import sys
 
-host = get_if_addr('eth1')
+host = get_if_addr('eth2')
 
 #broadcast port
 brPort = 13117
