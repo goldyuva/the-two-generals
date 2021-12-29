@@ -42,19 +42,18 @@ data = ''
 unpackedBr = ''
 to_finish = False
 
-def kbhit():
-    dr, _, _ = select.select([sys.stdin], [], [], 0)
-    return dr != []
-
 def get_input():
-    msg = None
-    while msg == None and not to_finish:
-        if(kbhit()):
-            msg = getch.getch()
-            print("got key:", msg)
-            tcpSendSocket.send(msg.encode())
-        time.sleep(1)
-    return str(chr(msg))
+    import sys, tty, termios
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setcbreak(sys.stdin.fileno())
+        ch = getch.getch()
+    except KeyboardInterrupt:
+        to_finish = True
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch
 
 async def ainput() -> str:
     return await asyncio.get_event_loop().run_in_executor(
@@ -77,7 +76,8 @@ while invalidPacket:
     try:
         data = udpRecvSocket.recvfrom(1024)
         host = data[1][0]
-        if host.endswith("77"):
+        print(host)
+        if host.endswith("79"):
             unpackedBr = struct.unpack(strFormat, data[0])
             if unpackedBr[0] == 0xabcddcba:
                 if unpackedBr[1] == 0x2:

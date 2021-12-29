@@ -97,7 +97,7 @@ def add_player_stats():
 
 def add_server_stats(eq, sol):
     if eq in equations:
-        equations[eq] += {'times': equations[eq]["times"] + 1, 'solution': sol}
+        equations[eq] = {'times': equations[eq]["times"] + 1, 'solution': sol}
     else:
         equations[eq] = {'times': 1, 'solution': sol}
 
